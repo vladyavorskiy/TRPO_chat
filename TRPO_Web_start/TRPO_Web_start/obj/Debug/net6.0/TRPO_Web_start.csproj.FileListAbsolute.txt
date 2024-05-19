@@ -55,3 +55,4 @@ C:\Users\Vladislav Yavorskiy\Desktop\ТРПО\TRPO_Web_start\TRPO_Web_start\bin\
 C:\Users\Vladislav Yavorskiy\Desktop\ТРПО\TRPO_Web_start\TRPO_Web_start\bin\Debug\net6.0\System.Text.Encodings.Web.dll
 C:\Users\Vladislav Yavorskiy\Desktop\ТРПО\TRPO_Web_start\TRPO_Web_start\bin\Debug\net6.0\System.Text.Json.dll
 C:\Users\Vladislav Yavorskiy\Desktop\ТРПО\TRPO_Web_start\TRPO_Web_start\bin\Debug\net6.0\runtimes\browser\lib\net6.0\System.Text.Encodings.Web.dll
+C:\Users\Vladislav Yavorskiy\Desktop\ТРПО\TRPO_Web_start\TRPO_Web_start\obj\Debug\net6.0\TRPO_Web_start.sourcelink.json

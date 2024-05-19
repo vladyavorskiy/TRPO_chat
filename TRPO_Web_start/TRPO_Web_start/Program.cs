@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.SignalR;
 using Serilog;
 using System.Xml.Linq;
+using TRPO_Web_start.Controllers;
 
 namespace TRPO_Web_start
 {
@@ -10,30 +12,20 @@ namespace TRPO_Web_start
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddSignalR();
 
-            //builder.Services.AddTransient<IProductService, ProductService>(); // при каждом запросе экземпляра будет создаваться новый класс 
-            //builder.Services.AddSingleton<IProductService, ProductService>(); // создается один экземпляр
+            builder.Services.AddSingleton<IChatStateService, ChatStateService>();
 
-            builder.Services.AddScoped<IProductService>(provider =>
+            builder.Services.AddScoped<ChatController>(provider =>
             {
-                var httpContextAccessor = provider.GetRequiredService<IHttpContextAccessor>();
-                var httpContext = httpContextAccessor.HttpContext;
-
-                if (httpContext.Request.Headers.TryGetValue("X-I-AM-VIP", out var _))
-                {
-                    return new VipProductService();
-                }
-                return new ProductService();
-
-            }); // создается на каждый HTTP запрос
-
+                var hubContext = provider.GetRequiredService<IHubContext<MainHub>>();
+                var chatStateService = provider.GetRequiredService<IChatStateService>();
+                return new ChatController(hubContext, chatStateService);
+            });
 
             var appName = typeof(Program).Assembly.GetName().Name;
 
@@ -69,38 +61,4 @@ namespace TRPO_Web_start
         }
     }
 
-    public interface IProductService
-    {
-        IEnumerable<Product> GetProducts();
-    }
-    public class ProductService : IProductService
-    {
-        private Guid _id = Guid.NewGuid();
-        public IEnumerable<Product> GetProducts()
-        {
-            yield return new Product{Id = 1, Name = "Помидорчики", Price = 32};
-            yield return new Product{Id = 1, Name = "Огурчики", Price = 56};
-            yield return new Product{Id = 1, Name = "Кабачки", Price = 208};
-        }
-    }
-
-    public class VipProductService : IProductService
-    {
-        private Guid _id = Guid.NewGuid();
-        public IEnumerable<Product> GetProducts()
-        {
-            yield return new Product { Id = 1, Name = "Помидорчики", Price = 32 };
-            yield return new Product { Id = 1, Name = "Огурчики", Price = 56 };
-            yield return new Product { Id = 1, Name = "Кабачки", Price = 208 };
-            yield return new Product { Id = 1, Name = "Премиум подписка", Price = 15000 };
-        }
-    }
-
-    public class Product
-    {
-        public long Id { get; set; }
-        public string Name { get; set; }
-        public double Price { get; set; }
-        
-    }
 }
