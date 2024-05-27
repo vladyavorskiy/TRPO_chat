@@ -1,0 +1,12 @@
+services:
+  backend:
+    image: backend-cs
+    environment: 
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - 65165:80 
+
+  frontend:
+    image: frontend-js-vue
+    ports:
+      - 5173:5173

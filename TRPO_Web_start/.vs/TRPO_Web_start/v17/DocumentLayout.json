@@ -3,23 +3,16 @@
   "WorkspaceRootPath": "C:\\Users\\Vladislav Yavorskiy\\Desktop\\\u0422\u0420\u041F\u041E\\TRPO_Web_start\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|c:\\users\\vladislav yavorskiy\\desktop\\\u0442\u0440\u043F\u043E\\trpo_web_start\\trpo_web_start\\controllers\\chatcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|solutionrelative:trpo_web_start\\controllers\\chatcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Vladislav Yavorskiy\\AppData\\Local\\SourceServer\\2cb1c5516847378566a803fe753872888c9b26285f0b2b03c1b580187ed06bb1\\TRPO_Web_start\\TRPO_Web_start\\Controllers\\ChatController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|c:\\users\\vladislav yavorskiy\\desktop\\\u0442\u0440\u043F\u043E\\trpo_web_start\\trpo_web_start\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|solutionrelative:trpo_web_start\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|c:\\users\\vladislav yavorskiy\\desktop\\\u0442\u0440\u043F\u043E\\trpo_web_start\\trpo_web_start\\chatstateservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|solutionrelative:trpo_web_start\\chatstateservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|c:\\users\\vladislav yavorskiy\\desktop\\\u0442\u0440\u043F\u043E\\trpo_web_start\\trpo_web_start\\class.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|solutionrelative:trpo_web_start\\class.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|c:\\users\\vladislav yavorskiy\\desktop\\\u0442\u0440\u043F\u043E\\trpo_web_start\\trpo_web_start\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|solutionrelative:trpo_web_start\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|c:\\users\\vladislav yavorskiy\\desktop\\\u0442\u0440\u043F\u043E\\trpo_web_start\\trpo_web_start\\controllers\\chatcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{66F02563-FA0B-42BD-BCF7-880A800EB054}|TRPO_Web_start\\TRPO_Web_start.csproj|solutionrelative:trpo_web_start\\controllers\\chatcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -29,7 +22,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 1046,
-          "SelectedChildIndex": 4,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -37,65 +30,39 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "ChatController.cs",
-              "DocumentMoniker": "C:\\Users\\Vladislav Yavorskiy\\AppData\\Local\\SourceServer\\2cb1c5516847378566a803fe753872888c9b26285f0b2b03c1b580187ed06bb1\\TRPO_Web_start\\TRPO_Web_start\\Controllers\\ChatController.cs",
-              "RelativeDocumentMoniker": "..\\..\\..\\AppData\\Local\\SourceServer\\2cb1c5516847378566a803fe753872888c9b26285f0b2b03c1b580187ed06bb1\\TRPO_Web_start\\TRPO_Web_start\\Controllers\\ChatController.cs",
-              "ToolTip": "C:\\Users\\Vladislav Yavorskiy\\AppData\\Local\\SourceServer\\2cb1c5516847378566a803fe753872888c9b26285f0b2b03c1b580187ed06bb1\\TRPO_Web_start\\TRPO_Web_start\\Controllers\\ChatController.cs",
-              "RelativeToolTip": "..\\..\\..\\AppData\\Local\\SourceServer\\2cb1c5516847378566a803fe753872888c9b26285f0b2b03c1b580187ed06bb1\\TRPO_Web_start\\TRPO_Web_start\\Controllers\\ChatController.cs",
-              "ViewState": "AQIAABIAAAAAAAAAAAAjwCUAAAADAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-05-19T19:01:34.601Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "Class.cs",
-              "DocumentMoniker": "C:\\Users\\Vladislav Yavorskiy\\Desktop\\\u0422\u0420\u041F\u041E\\TRPO_Web_start\\TRPO_Web_start\\Class.cs",
-              "RelativeDocumentMoniker": "TRPO_Web_start\\Class.cs",
-              "ToolTip": "C:\\Users\\Vladislav Yavorskiy\\Desktop\\\u0422\u0420\u041F\u041E\\TRPO_Web_start\\TRPO_Web_start\\Class.cs",
-              "RelativeToolTip": "TRPO_Web_start\\Class.cs",
-              "ViewState": "AQIAAAsAAAAAAAAAAAAQwCAAAABFAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-05-18T16:23:27.674Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 0,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\Vladislav Yavorskiy\\Desktop\\\u0422\u0420\u041F\u041E\\TRPO_Web_start\\TRPO_Web_start\\Program.cs",
               "RelativeDocumentMoniker": "TRPO_Web_start\\Program.cs",
               "ToolTip": "C:\\Users\\Vladislav Yavorskiy\\Desktop\\\u0422\u0420\u041F\u041E\\TRPO_Web_start\\TRPO_Web_start\\Program.cs",
               "RelativeToolTip": "TRPO_Web_start\\Program.cs",
-              "ViewState": "AQIAABsAAAAAAAAAAAAAwEAAAAAAAAAA",
+              "ViewState": "AQIAACAAAAAAAAAAAAAqwEAAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-04-13T06:00:35.854Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "ChatController.cs",
               "DocumentMoniker": "C:\\Users\\Vladislav Yavorskiy\\Desktop\\\u0422\u0420\u041F\u041E\\TRPO_Web_start\\TRPO_Web_start\\Controllers\\ChatController.cs",
               "RelativeDocumentMoniker": "TRPO_Web_start\\Controllers\\ChatController.cs",
               "ToolTip": "C:\\Users\\Vladislav Yavorskiy\\Desktop\\\u0422\u0420\u041F\u041E\\TRPO_Web_start\\TRPO_Web_start\\Controllers\\ChatController.cs",
               "RelativeToolTip": "TRPO_Web_start\\Controllers\\ChatController.cs",
-              "ViewState": "AQIAAA0AAAAAAAAAAAAtwCgAAAAMAAAA",
+              "ViewState": "AQIAAB4BAAAAAAAAAAAkwDoBAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-05-03T18:10:45.361Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
               "Title": "ChatStateService.cs",
               "DocumentMoniker": "C:\\Users\\Vladislav Yavorskiy\\Desktop\\\u0422\u0420\u041F\u041E\\TRPO_Web_start\\TRPO_Web_start\\ChatStateService.cs",
               "RelativeDocumentMoniker": "TRPO_Web_start\\ChatStateService.cs",
               "ToolTip": "C:\\Users\\Vladislav Yavorskiy\\Desktop\\\u0422\u0420\u041F\u041E\\TRPO_Web_start\\TRPO_Web_start\\ChatStateService.cs",
               "RelativeToolTip": "TRPO_Web_start\\ChatStateService.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAYAAAAFAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAABgAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-05-10T16:42:19.719Z",
               "EditorCaption": ""
