@@ -1,0 +1,12 @@
+services:
+  backend:
+    image: TRPO_Web_start
+    environment: 
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - 65165:80 
+
+  frontend:
+    image: my-vue-app
+    ports:
+      - 3000:3000

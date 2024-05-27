@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "new": "vite --mode docker" ,
     "build": "vite build",
     "preview": "vite preview"
   },
