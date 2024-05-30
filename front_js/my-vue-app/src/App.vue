@@ -2,9 +2,9 @@
 import axios from "axios";
 import { ref, watch, onMounted } from "vue";
 import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
-import { nextTick } from 'vue';
-
-type TriState = true | false | null;
+import { nextTick } from "vue";
+import { ElInput, ElButton, ElIcon, ElTooltip } from "element-plus";
+import "element-plus/dist/index.css";
 
 interface Message {
   id: number;
@@ -18,18 +18,13 @@ interface ReplyInfo {
   replyState: boolean | null;
 }
 
-
 const userNameInput = ref("");
 const userName = ref("");
 const currentGroup = ref<string>("");
 const newMessage = ref("");
 const newGroupName = ref<string>("");
 const availableGroups = ref<string[]>([]);
-// const groupMessages = ref<{ text: string; sender: string; id: number; replyTo: TriState }[]>(
-//   []
-// );
 const groupMessages = ref<Message[]>([]);
-
 
 const connection = ref<HubConnection | null>(null);
 
@@ -53,29 +48,12 @@ const initializeSignalRConnection = async () => {
     })
     .build();
 
-  // connection.value.on(
-  //   "onMessage",
-  //   (message: Message) => {
-  //     if (currentGroup.value) {
-  //       groupMessages.value.push({
-  //       text: message.text,
-  //       sender: message.sender,
-  //       id: message.id,
-  //       replyTo: message.replyTo});
-  //     }
-  //     scrollToEnd();
-  //   }
-  // );
-
-  connection.value.on(
-    "onMessage",
-    (message: Message) => {
-      if (currentGroup.value) {
-        groupMessages.value.push(message);
-      }
-      scrollToEnd();
+  connection.value.on("onMessage", (message: Message) => {
+    if (currentGroup.value) {
+      groupMessages.value.push(message);
     }
-  );
+    scrollToEnd();
+  });
 
   connection.value.on("onUserJoin", (userName: string, id: number) => {
     if (currentGroup.value) {
@@ -205,7 +183,7 @@ const deleteGroup = async () => {
   }
 };
 
-let repliedMessageId = ref(null); 
+let repliedMessageId = ref(null);
 
 const replyMessage = async (message) => {
   if (repliedMessageId.value === message.id) {
@@ -257,7 +235,7 @@ const leaveGroup = async () => {
       console.log("Response from server:", response.data);
       currentGroup.value = "";
       groupMessages.value = [];
-      await loadAvailableGroups(); 
+      await loadAvailableGroups();
     } catch (error) {
       console.error(
         "Error leaving group:",
@@ -312,9 +290,9 @@ const removeMessageForAll = async (messageId) => {
   }
 };
 
-const editedMessage = ref(""); 
-const isEditing = ref(false); 
-let editedMessageId = null; 
+const editedMessage = ref("");
+const isEditing = ref(false);
+let editedMessageId = null;
 
 // const showDropdownMenuForMessage = ref(null);
 
@@ -334,10 +312,9 @@ let editedMessageId = null;
 const showDropdownMenuForMessage = ref<number | null>(null);
 
 const showDropdownMenu = (message) => {
-  if(message.sender == 'System'){
+  if (message.sender == "System") {
     showDropdownMenuForMessage.value = null;
-  }
-  else if (showDropdownMenuForMessage.value === message.id) {
+  } else if (showDropdownMenuForMessage.value === message.id) {
     showDropdownMenuForMessage.value = null;
   } else {
     showDropdownMenuForMessage.value = message.id;
@@ -345,14 +322,14 @@ const showDropdownMenu = (message) => {
 };
 
 const editMessage = async (message) => {
-  isEditing.value = true; 
+  isEditing.value = true;
   editedMessage.value = message.text;
-  editedMessageId = message.id; 
+  editedMessageId = message.id;
 };
 
 const cancelEdit = () => {
   editedMessage.value = "";
-  isEditing.value = false; 
+  isEditing.value = false;
   showDropdownMenuForMessage.value = null;
 };
 
@@ -375,42 +352,37 @@ const saveEdit = async () => {
   }
 };
 
-const scrollToMessage = (messageId) => {
-  nextTick(() => {
-    const messageElement = document.getElementById(`message-${messageId}`);
-    if (messageElement) {
-      messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  });
-};
-
 const scrollToOriginalMessage = (message) => {
   console.log("scrollToOriginalMessage:");
   if (message.replyTo !== null) {
-    console.log("Original message ID:", `message-${message.replyTo.messageReplyId}`);
+    console.log(
+      "Original message ID:",
+      `message-${message.replyTo.messageReplyId}`
+    );
     const originalMessage = groupMessages.value.find(
       (msg) => msg.id === message.replyTo.messageReplyId
     );
     console.log("Original message:", originalMessage);
     if (originalMessage) {
       nextTick(() => {
-        const originalMessageElement = document.querySelector(`[data-id='message-${originalMessage.id}']`);
+        const originalMessageElement = document.querySelector(
+          `[data-id='message-${originalMessage.id}']`
+        );
         console.log("Original message element:", originalMessageElement);
         if (originalMessageElement) {
-            originalMessageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-            originalMessageElement.classList.add('highlight'); 
-            setTimeout(() => {
-              originalMessageElement.classList.remove('highlight'); 
-            }, 1000);
-          }
+          originalMessageElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          originalMessageElement.classList.add("highlight");
+          setTimeout(() => {
+            originalMessageElement.classList.remove("highlight");
+          }, 1000);
+        }
       });
     }
   }
 };
-
-
-
-
 
 onMounted(async () => {
   if (userName.value) {
@@ -423,22 +395,40 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h1 class="header">Chat Application</h1>
     <div v-if="!userName">
-      <input
+      <el-input
         v-focus
         v-model="userNameInput"
         placeholder="Enter your username"
+        style="width: 240px"
+        size="large"
+        maxlength="15"
+        show-word-limit
+        clearable
       />
-      <button @click="setUserName">Set Username</button>
+      <el-button
+        color="#41B3A3"
+        size="large"
+        type="primary"
+        @click="setUserName"
+        >Set Username</el-button
+      >
     </div>
     <div v-else>
       <div v-if="!currentGroup">
         <div>
           <h2>Available Groups</h2>
           <ul class="group-list">
-            <li v-for="group in availableGroups" :key="group">
-              <button @click="joinGroup(group)">{{ group }}</button>
+            <li
+              v-for="group in availableGroups"
+              :key="group"
+              @click="joinGroup(group)"
+              :class="{ active: currentGroup.value === group }"
+            >
+              {{ group }}
+              <span v-if="unreadCounts.value[group]">
+                ({{ unreadCounts.value[group] }} unread)
+              </span>
             </li>
           </ul>
         </div>
@@ -456,8 +446,48 @@ onMounted(async () => {
         </div>
       </div>
       <div v-else>
-        <div class="chat-container">
+        <div class="chat-header">
           <h2 class="chat-title">{{ currentGroup }}</h2>
+          <div class="buttons-container">
+            <!-- <button v-if="isGroupCreator" @click="deleteGroup">
+                Delete Group
+              </button>
+              <button @click="loadAvailableGroups">Back to Menu</button>
+              <button @click="leaveGroup">Leave Group</button> -->
+
+            <el-tooltip
+              v-if="isGroupCreator"
+              content="Удалить группу"
+              placement="top"
+              effect="customized"
+            >
+              <el-icon class="icon-spacing" @click="deleteGroup" :size="30">
+                <Delete />
+              </el-icon>
+            </el-tooltip>
+
+            <el-tooltip
+              content="Покинуть группу"
+              effect="customized"
+              placement="top"
+            >
+              <el-icon class="icon-spacing" @click="leaveGroup" :size="30">
+                <Remove />
+              </el-icon>
+            </el-tooltip>
+
+            <el-tooltip
+              content="Поиск сообщения"
+              effect="customized"
+              placement="top"
+            >
+              <el-icon class="icon-spacing" :size="30">
+                <Search />
+              </el-icon>
+            </el-tooltip>
+          </div>
+        </div>
+        <div class="chat-container">
           <div class="messages-container">
             <div
               v-for="message in groupMessages"
@@ -469,12 +499,24 @@ onMounted(async () => {
                   'user-message': message.sender === userName,
                   'other-message': message.sender !== userName,
                   'system-message': message.sender === 'System',
-                  'choice-reply-message': repliedMessageId == message.id && repliedMessageId != null,
-                  'other-reply-to-message': (message.replyTo && message.replyTo.replyState === false && message.sender == userName) || (message.replyTo && message.replyTo.replyState === true && message.sender != userName),
-                  'user-reply-to-message': (message.replyTo && message.replyTo.replyState === false && message.sender != userName) || (message.replyTo && message.replyTo.replyState === true && message.sender == userName),
+                  'choice-reply-message':
+                    repliedMessageId == message.id && repliedMessageId != null,
+                  'other-reply-to-message':
+                    (message.replyTo &&
+                      message.replyTo.replyState === false &&
+                      message.sender == userName) ||
+                    (message.replyTo &&
+                      message.replyTo.replyState === true &&
+                      message.sender != userName),
+                  'user-reply-to-message':
+                    (message.replyTo &&
+                      message.replyTo.replyState === false &&
+                      message.sender != userName) ||
+                    (message.replyTo &&
+                      message.replyTo.replyState === true &&
+                      message.sender == userName),
                 },
               ]"
-
               @contextmenu.prevent.right="showDropdownMenu(message)"
               @dblclick="scrollToOriginalMessage(message)"
             >
@@ -485,7 +527,10 @@ onMounted(async () => {
               {{ message.text }}
 
               <div
-                v-if="showDropdownMenuForMessage === message.id &&  message.replyTo == null"
+                v-if="
+                  showDropdownMenuForMessage === message.id &&
+                  message.replyTo == null
+                "
                 class="dropdown"
               >
                 <button
@@ -513,13 +558,6 @@ onMounted(async () => {
             />
             <button type="submit" @click="sendMessage">Send</button>
           </div>
-          <div class="buttons-container">
-            <button v-if="isGroupCreator" @click="deleteGroup">
-              Delete Group
-            </button>
-            <button @click="loadAvailableGroups">Back to Menu</button>
-            <button @click="leaveGroup">Leave Group</button>
-          </div>
         </div>
         <div class="input-container" v-if="isEditing">
           <input
@@ -538,7 +576,7 @@ onMounted(async () => {
 </template>
 
 <style>
-.header {
+.chat-header {
   position: fixed;
   top: 0;
   left: 0;
@@ -546,7 +584,34 @@ onMounted(async () => {
   background-color: #ffffff;
   padding: 10px 0;
   text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
+
+.chat-title {
+  font-size: 30px;
+  width: 100%;
+  text-align: center;
+}
+
+.buttons-container {
+  top: 120px;
+  right: 10px;
+  width: 100%;
+  gap: 10px;
+}
+
+.icon-spacing {
+  margin-right: 10px;
+}
+
+.el-popper.is-customized, .el-popper__arrow::before {
+  background: #84cdca;
+}
+
+
+
 
 .group-list {
   list-style-type: none;
@@ -558,18 +623,6 @@ onMounted(async () => {
 
 .join-button {
   margin-left: 10px;
-}
-
-.chat-title {
-  position: fixed;
-  top: 100px;
-  left: 0;
-  width: 100%;
-  text-align: center;
-}
-
-.chat-container {
-  margin-top: 50px;
 }
 
 .messages-container {
@@ -596,16 +649,16 @@ onMounted(async () => {
   text-align: left;
 }
 
-.user-reply-to-message{
+.user-reply-to-message {
   text-align: right;
   background-color: #869898cc;
-  margin-right: 20px; 
+  margin-right: 20px;
 }
 
-.other-reply-to-message{
+.other-reply-to-message {
   text-align: left;
   background-color: #869898cc;
-  margin-left: 20px; 
+  margin-left: 20px;
 }
 
 .system-message {
@@ -613,28 +666,17 @@ onMounted(async () => {
   color: #24ab65;
 }
 
-.choice-reply-message{
+.choice-reply-message {
   color: rgb(255, 0, 0);
 }
 
 .input-container {
-  position: fixed;
-  bottom: 100px;
-  left: 0;
   width: 100%;
   margin-top: 20px;
   text-align: center;
 }
 
-.buttons-container {
-  position: absolute;
-  top: 120px;
-  right: 10px;
-}
-
 .highlight {
-  background-color: #ffc107; 
+  background-color: #ffc107;
 }
 </style>
-
-
