@@ -14,6 +14,7 @@
     "@microsoft/signalr": "^8.0.0",
     "axios": "^1.6.8",
     "element-plus": "^2.7.3",
+    "v-dropdown": "^3.0.0",
     "vue": "^3.4.21",
     "vue-router": "^4.0.13"
   },
