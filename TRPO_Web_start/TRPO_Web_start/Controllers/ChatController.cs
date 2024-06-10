@@ -64,6 +64,7 @@ namespace TRPO_Web_start.Controllers
                 var newMessage = new Message { Text = message, Sender = "System", ReplyTo = null};
                 _chatStateService.GroupMessages[groupName].Add(newMessage);
                 await _hubContext.Clients.Group(groupName).SendAsync("onUserJoin", userName, newMessage.Id);
+
             }
 
             foreach (var message in _chatStateService.GroupMessages[groupName])
@@ -245,7 +246,6 @@ namespace TRPO_Web_start.Controllers
                     }
 
                     _chatStateService.GroupMessages[groupName].Add(newReplyMessage);
-                    //await _hubContext.Clients.Group(groupName).SendAsync("onMessage", newReplyMessage.Text, newReplyMessage.Sender, newReplyMessage.Id, newReplyMessage.ReplyTo);
                     await _hubContext.Clients.Group(groupName).SendAsync("onMessage", newReplyMessage);
                 }
                 else
@@ -256,12 +256,12 @@ namespace TRPO_Web_start.Controllers
 
             var newMessage = new Message { Text = message, Sender = userName };
             _chatStateService.GroupMessages[groupName].Add(newMessage);
-
-            //await _hubContext.Clients.Group(groupName).SendAsync("onMessage", message, userName, newMessage.Id, null);
+            
             await _hubContext.Clients.Group(groupName).SendAsync("onMessage", newMessage);
 
             return Ok();
         }
+
 
         [HttpGet("GetGroupCreator")]
         public IActionResult GetGroupCreator(string groupName)
@@ -273,6 +273,30 @@ namespace TRPO_Web_start.Controllers
             return BadRequest("Group does not exist.");
         }
 
+        [HttpGet("GetUsersInGroup")]
+        public IActionResult GetUsersInGroup(string groupName)
+        {
+            var usersInGroup = new List<string>();
+
+            foreach (var user in _chatStateService.UserGroups)
+            {
+                if (user.Value.Contains(groupName))
+                {
+                    usersInGroup.Add(user.Key);
+                }
+            }
+
+            return Ok(usersInGroup);
+        }
+
+
+
+        public class Users
+        {
+            public string Name;
+            public string Position;
+        }
+        
 
         public class Message
         {
@@ -282,12 +306,12 @@ namespace TRPO_Web_start.Controllers
             public string Text { get; set; }
             public string Sender { get; set; }
 
+
             public Message()
             {
                 Id = ++_idCounter;
                 ReplyTo = null;
             }
-            //public bool? ReplyTo { get; set; } 
 
             public ReplyInfo ReplyTo { get; set; }
 
