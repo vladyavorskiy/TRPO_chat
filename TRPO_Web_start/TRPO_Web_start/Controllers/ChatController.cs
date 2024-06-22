@@ -26,7 +26,14 @@ namespace TRPO_Web_start.Controllers
             if (!_chatStateService.GroupMessages.ContainsKey(groupName))
             {
                 _chatStateService.GroupMessages.Add(groupName, new List<Message>());
-                _chatStateService.GroupCreators.Add(groupName, creator);
+                
+                var creatorInfo = new UsersInfo
+                {
+                    Name = creator,
+                    ChatRole = UserRole.Creator
+                };
+
+                _chatStateService.UserInGroup.Add(groupName, new List<UsersInfo> { creatorInfo });
                 return Ok($"Group '{groupName}' created.");
             }
             else
@@ -60,11 +67,23 @@ namespace TRPO_Web_start.Controllers
             {
                 await _hubContext.Groups.AddToGroupAsync(connectionId, groupName);
                 _chatStateService.UserGroups[userName].Add(groupName);
-                string message = userName + " has joined the group.";
-                var newMessage = new Message { Text = message, Sender = "System", ReplyTo = null};
+                string message = userName + " вступил в группу.";
+                var newMessage = new Message { Text = message, Sender = "System", ReplyTo = null };
                 _chatStateService.GroupMessages[groupName].Add(newMessage);
                 await _hubContext.Clients.Group(groupName).SendAsync("onUserJoin", userName, newMessage.Id);
+            }
 
+            if (_chatStateService.UserInGroup.ContainsKey(groupName))
+            {
+                var usersInGroup = _chatStateService.UserInGroup[groupName];
+                if (!usersInGroup.Any(u => u.Name == userName))
+                {
+                    usersInGroup.Add(new UsersInfo { Name = userName, ChatRole = UserRole.Common });
+                }
+            }
+            else
+            {
+                return BadRequest($"Group '{groupName}' does not exist in UserInGroup.");
             }
 
             foreach (var message in _chatStateService.GroupMessages[groupName])
@@ -74,6 +93,39 @@ namespace TRPO_Web_start.Controllers
 
             return Ok();
         }
+
+
+        [HttpPost("DeleteUser")]
+        public async Task<IActionResult> DeleteUser(string groupName, string userName)
+        {
+            if (!_chatStateService.UserConnections.ContainsKey(userName))
+            {
+                return BadRequest($"User '{userName}' does not exist.");
+            }
+
+            string connectionId = _chatStateService.UserConnections[userName];
+
+            if (_chatStateService.UserGroups.ContainsKey(userName) && _chatStateService.UserGroups[userName].Contains(groupName) && _chatStateService.UserInGroup.ContainsKey(groupName))
+            {
+
+                var usersInGroup = _chatStateService.UserInGroup[groupName];
+                var userToRemove = usersInGroup.FirstOrDefault(u => u.Name == userName);
+                if (userToRemove != null)
+                {
+                    usersInGroup.Remove(userToRemove);
+                }
+
+                string message = userName + " был удален администрацией";
+                var newMessage = new Message { Text = message, Sender = "System", ReplyTo = null };
+                _chatStateService.GroupMessages[groupName].Add(newMessage);
+                await _hubContext.Clients.Group(groupName).SendAsync("onUserDeleted", groupName, userName, 20);
+                _chatStateService.UserGroups[userName].Remove(groupName);
+                await _hubContext.Groups.RemoveFromGroupAsync(connectionId, groupName);
+            }
+
+            return Ok();
+        }
+
 
 
         [HttpPost("LeaveGroup")]
@@ -86,14 +138,23 @@ namespace TRPO_Web_start.Controllers
 
             string connectionId = _chatStateService.UserConnections[userName];
 
-            if (_chatStateService.UserGroups.ContainsKey(userName) && _chatStateService.UserGroups[userName].Contains(groupName))
+            if (_chatStateService.UserGroups.ContainsKey(userName) && _chatStateService.UserGroups[userName].Contains(groupName) && _chatStateService.UserInGroup.ContainsKey(groupName))
             {
+
+                var usersInGroup = _chatStateService.UserInGroup[groupName];
+                var userToRemove = usersInGroup.FirstOrDefault(u => u.Name == userName);
+                if (userToRemove != null)
+                {
+                    usersInGroup.Remove(userToRemove);
+                }
+
                 _chatStateService.UserGroups[userName].Remove(groupName);
                 await _hubContext.Groups.RemoveFromGroupAsync(connectionId, groupName);
-                string message = userName + " has left the group.";
+                string message = userName + " покинул группу.";
                 var newMessage = new Message { Text = message, Sender = "System", ReplyTo = null };
                 _chatStateService.GroupMessages[groupName].Add(newMessage);
                 await _hubContext.Clients.Group(groupName).SendAsync("onUserRemoved", userName, newMessage.Id);
+
             }
 
             return Ok();
@@ -146,9 +207,15 @@ namespace TRPO_Web_start.Controllers
         [HttpPost("DeleteGroup")]
         public async Task<IActionResult> DeleteGroup(string groupName, string userName)
         {
-            if (_chatStateService.GroupCreators.ContainsKey(groupName) && _chatStateService.GroupCreators[groupName] == userName)
+            if (_chatStateService.UserInGroup.ContainsKey(groupName))
             {
-                _chatStateService.GroupCreators.Remove(groupName);
+                var groupUsers = _chatStateService.UserInGroup[groupName];
+                var creator = groupUsers.FirstOrDefault(u => u.ChatRole == UserRole.Creator);
+                if (creator.Name == userName)
+                {
+                    _chatStateService.UserInGroup.Remove(groupName);
+                }
+
                 if (_chatStateService.GroupMessages.ContainsKey(groupName))
                 {
                     _chatStateService.GroupMessages.Remove(groupName);
@@ -186,6 +253,21 @@ namespace TRPO_Web_start.Controllers
                 Message messageToRemove = messages.Find(msg => msg.Id == messageId);
                 if (messageToRemove != null)
                 {
+                    if (messageToRemove.ReplyTo?.replyState == null && messageToRemove.ReplyTo != null)
+                    {
+
+                        Message messageReplyToRemove = messages.Find(msg => msg.Id == messageToRemove.ReplyTo.messageReplyId);
+                        if (messageReplyToRemove != null)
+                        {
+                            _chatStateService.GroupMessages[groupName].Remove(messageReplyToRemove);
+                            await _hubContext.Clients.Group(groupName).SendAsync("onMessageRemoved", messageToRemove.ReplyTo.messageReplyId);
+                        }
+                        else
+                        {
+                            return BadRequest("Failed to remove message.");
+                        }
+
+                    }
                     _chatStateService.GroupMessages[groupName].Remove(messageToRemove);
                     await _hubContext.Clients.Group(groupName).SendAsync("onMessageRemoved", messageId);
                     return Ok("Message removed for all.");
@@ -229,13 +311,13 @@ namespace TRPO_Web_start.Controllers
                 return BadRequest($"Group '{groupName}' does not exist.");
             }
 
-            if (messageId!=null)
+            if (messageId != null)
             {
                 List<Message> messages = _chatStateService.GroupMessages[groupName];
                 Message messageToReply = messages.Find(msg => msg.Id == messageId);
                 if (messageToReply != null)
                 {
-                    var newReplyMessage = new Message { Text = messageToReply.Text, Sender = messageToReply.Sender};
+                    var newReplyMessage = new Message { Text = messageToReply.Text, Sender = messageToReply.Sender };
                     if (messageToReply.Sender == userName)
                     {
                         newReplyMessage.ReplyTo = new Message.ReplyInfo(messageToReply.Id, true);
@@ -244,9 +326,16 @@ namespace TRPO_Web_start.Controllers
                     {
                         newReplyMessage.ReplyTo = new Message.ReplyInfo(messageToReply.Id, false);
                     }
-
                     _chatStateService.GroupMessages[groupName].Add(newReplyMessage);
                     await _hubContext.Clients.Group(groupName).SendAsync("onMessage", newReplyMessage);
+                    
+                    var newMessageWithReply = new Message { Text = message, Sender = userName};
+                    newMessageWithReply.ReplyTo = new Message.ReplyInfo(newReplyMessage.Id, null);
+                    
+                    _chatStateService.GroupMessages[groupName].Add(newMessageWithReply);
+                    await _hubContext.Clients.Group(groupName).SendAsync("onMessage", newMessageWithReply);
+                    return Ok();
+
                 }
                 else
                 {
@@ -256,7 +345,7 @@ namespace TRPO_Web_start.Controllers
 
             var newMessage = new Message { Text = message, Sender = userName };
             _chatStateService.GroupMessages[groupName].Add(newMessage);
-            
+
             await _hubContext.Clients.Group(groupName).SendAsync("onMessage", newMessage);
 
             return Ok();
@@ -266,9 +355,15 @@ namespace TRPO_Web_start.Controllers
         [HttpGet("GetGroupCreator")]
         public IActionResult GetGroupCreator(string groupName)
         {
-            if (_chatStateService.GroupCreators.ContainsKey(groupName))
+            if (_chatStateService.UserInGroup.ContainsKey(groupName))
             {
-                return Ok(_chatStateService.GroupCreators[groupName]);
+                var users = _chatStateService.UserInGroup[groupName];
+                var creator = users.FirstOrDefault(u => u.ChatRole == UserRole.Creator);
+                if (creator != null)
+                {
+                    return Ok(creator.Name);
+                }
+                return BadRequest("Creator not found in the group.");
             }
             return BadRequest("Group does not exist.");
         }
@@ -276,27 +371,76 @@ namespace TRPO_Web_start.Controllers
         [HttpGet("GetUsersInGroup")]
         public IActionResult GetUsersInGroup(string groupName)
         {
-            var usersInGroup = new List<string>();
-
-            foreach (var user in _chatStateService.UserGroups)
+            if (_chatStateService.UserInGroup.ContainsKey(groupName))
             {
-                if (user.Value.Contains(groupName))
+                var users = _chatStateService.UserInGroup[groupName];
+                var usersInfo = users.Select(u => new { u.Name, Role = u.ChatRole.ToString() }).ToList();
+                return Ok(usersInfo);
+            }
+            return BadRequest("Group does not exist.");
+        }
+
+
+        [HttpPost("ChangeUserRole")]
+        public async Task<IActionResult> ChangeUserRole(string groupName, string userName, UserRole newRole)
+        {
+            if (_chatStateService.UserInGroup.ContainsKey(groupName))
+            {
+                var usersInGroup = _chatStateService.UserInGroup[groupName];
+                var userToUpdate = usersInGroup.FirstOrDefault(u => u.Name == userName);
+                if (userToUpdate != null)
                 {
-                    usersInGroup.Add(user.Key);
+                    userToUpdate.ChatRole = newRole;
+                    await _hubContext.Clients.Group(groupName).SendAsync("onUserRoleEdited", groupName, userName, newRole.ToString());
+                    return Ok($"Role for user '{userName}' changed to '{newRole}'.");
+                }
+                else
+                {
+                    return BadRequest($"User '{userName}' not found in group '{groupName}'.");
                 }
             }
+            else
+            {
+                return BadRequest($"Group '{groupName}' does not exist.");
+            }
+        }
 
-            return Ok(usersInGroup);
+        [HttpGet("GetUsersRole")]
+        public IActionResult GetUsersRole(string groupName, string userName)
+        {
+            if (_chatStateService.UserGroups.ContainsKey(userName) && _chatStateService.UserGroups[userName].Contains(groupName) && _chatStateService.UserInGroup.ContainsKey(groupName))
+            {
+
+                var usersInGroup = _chatStateService.UserInGroup[groupName];
+                var user = usersInGroup.FirstOrDefault(u => u.Name == userName);
+
+                if (user != null)
+                {
+                    return Ok(user.ChatRole.ToString());
+                }
+                else
+                {
+                    return BadRequest($"User '{userName}' is not in the group '{groupName}'.");
+                }
+            }
+            return BadRequest("Error");
+        }
+
+        public enum UserRole
+        {
+            DefaultRole,
+            Common,
+            Admin,
+            Moderator,
+            Creator
         }
 
 
-
-        public class Users
+        public class UsersInfo
         {
             public string Name;
-            public string Position;
+            public UserRole ChatRole;
         }
-        
 
         public class Message
         {
@@ -315,7 +459,7 @@ namespace TRPO_Web_start.Controllers
 
             public ReplyInfo ReplyTo { get; set; }
 
-            
+
 
             public class ReplyInfo
             {
@@ -330,7 +474,7 @@ namespace TRPO_Web_start.Controllers
                 }
             }
 
-            
+
 
         }
 
