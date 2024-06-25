@@ -7,6 +7,6 @@ services:
       - 65165:80 
 
   frontend:
-    image: frontend-js-vue
+    image: frontend-cs
     ports:
       - 5173:5173

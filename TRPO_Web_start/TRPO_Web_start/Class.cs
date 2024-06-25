@@ -16,29 +16,6 @@ namespace TRPO_Web_start
 
         public override async Task OnConnectedAsync()
         {
-            var httpContext = Context.GetHttpContext();
-            var userName = Uri.UnescapeDataString(httpContext.Request.Query["access_token"]);
-
-            if (!string.IsNullOrEmpty(userName))
-            {
-                if (_chatStateService.UserConnections.ContainsKey(userName))
-                {
-                    _chatStateService.UserConnections[userName] = Context.ConnectionId;
-                }
-                else
-                {
-                    _chatStateService.UserConnections.Add(userName, Context.ConnectionId);
-                }
-
-                if (_chatStateService.UserGroups.ContainsKey(userName))
-                {
-                    foreach (var group in _chatStateService.UserGroups[userName])
-                    {
-                        await Groups.AddToGroupAsync(Context.ConnectionId, group);
-                    }
-                }
-            }
-
             await base.OnConnectedAsync();
         }
 
@@ -47,9 +24,11 @@ namespace TRPO_Web_start
             var userName = _chatStateService.UserConnections.FirstOrDefault(x => x.Value == Context.ConnectionId).Key;
             if (userName != null)
             {
-                _chatStateService.UserConnections.Remove(userName);
+                foreach (var group in _chatStateService.UserGroups[Context.ConnectionId])
+                {
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, group);
+                }
             }
-
             await base.OnDisconnectedAsync(exception);
         }
 
