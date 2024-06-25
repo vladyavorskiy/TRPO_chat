@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import axios from "axios";
-import { ref, watch, onMounted, computed } from "vue";
+import { ref, computed } from "vue";
 import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
 import { nextTick } from "vue";
 import {
@@ -12,7 +12,6 @@ import {
   ElAside,
   ElHeader,
   ElMain,
-  ElText,
   ElDropdown,
   ElDropdownItem,
   ElDropdownMenu,
@@ -25,7 +24,6 @@ import {
   ElRadioButton,
 } from "element-plus";
 import "element-plus/dist/index.css";
-import { FailedToStartTransportError } from "@microsoft/signalr/dist/esm/Errors";
 
 interface Message {
   id: number;
@@ -53,18 +51,17 @@ const availableGroups = ref<string[]>([]);
 const groupMembers = ref<UsersInfo[]>([]);
 const groupMessages = ref<Message[]>([]);
 const searchQuery = ref<string>("");
-const isSearching = ref(false); // Added search mode toggle
+const isSearching = ref(false);
 const dialogUserVisible = ref(false);
 const dialogRoleVisible = ref(false);
 const selectedRole = ref<string>("");
 const selectedMembertoChangeRole = ref<string>("");
-//const isGroupCreator = ref(false);
 const isGroupRole = ref<string>("");
 const connection = ref<HubConnection | null>(null);
-
-watch(availableGroups, (x) => {
-  console.log(x);
-});
+const repliedMessageId = ref(null);
+const editedMessage = ref("");
+const isEditing = ref(false);
+let editedMessageId = null;
 
 const setUserName = async () => {
   if (userNameInput.value.trim() !== "") {
@@ -76,11 +73,7 @@ const setUserName = async () => {
 };
 
 const initializeSignalRConnection = async () => {
-  connection.value = new HubConnectionBuilder()
-    .withUrl("/hub", {
-      accessTokenFactory: () => encodeURIComponent(userName.value),
-    })
-    .build();
+  connection.value = new HubConnectionBuilder().withUrl("/hub").build();
 
   connection.value.on("onMessage", (message: Message) => {
     if (currentGroup.value) {
@@ -200,12 +193,6 @@ const initializeSignalRConnection = async () => {
   }
 };
 
-const scrollToEnd = () => {
-  setTimeout(() => {
-    var container = document.querySelector(".chat_container");
-    container.scrollTop = container.scrollHeight;
-  }, 0);
-};
 
 const setUserConnection = async () => {
   if (userName.value && connection.value?.connectionId) {
@@ -223,50 +210,16 @@ const setUserConnection = async () => {
   }
 };
 
-const joinGroup = async (group: string) => {
-  searchQuery.value = "";
-  isSearching.value = false;
-  if (userName.value) {
-    try {
-      await axios.post("/api/Chat/JoinGroup", null, {
-        params: { groupName: group, userName: userName.value },
-      });
-      currentGroup.value = group;
-      await loadGroupMessages(group);
-      if (!availableGroups.value.includes(group)) {
-        availableGroups.value.push(group);
-      }
-      const response = await axios.get("/api/Chat/GetUsersRole", {
-        params: { groupName: group, userName: userName.value },
-      });
-      isGroupRole.value = response.data;
-      newGroupName.value = "";
-      nextTick(() => {
-        const inputElement = document.getElementById("eli-message");
-        if (inputElement) {
-          inputElement.focus();
-        }
-      });
-    } catch (error) {
-      console.error("Error joining group:", error);
-      ElMessage.error("Ошибка при вступлении в чат");
-      ElMessage({
-        message: "Возможно, группа с таким названием не существует",
-        type: "warning",
-      });
-    }
-  }
-};
-
 const createGroup = async () => {
   searchQuery.value = "";
   isSearching.value = false;
   if (newGroupName.value.trim() !== "") {
     try {
       await axios.post("/api/Chat/CreateGroup", null, {
-        params: { groupName: newGroupName.value, creator: userName.value },
+        params: { 
+          createGroupName: newGroupName.value, 
+          creatorName: userName.value },
       });
-      //availableGroups.value.push(newGroupName.value);
       await joinGroup(newGroupName.value);
       newGroupName.value = "";
       nextTick(() => {
@@ -286,13 +239,87 @@ const createGroup = async () => {
   }
 };
 
+const joinGroup = async (group: string) => {
+  searchQuery.value = "";
+  isSearching.value = false;
+  if (userName.value) {
+    try {
+      const responseFirst =await axios.post("/api/Chat/JoinGroup", null, {
+        params: { 
+          joinGroupName: group, 
+          joinUserName: userName.value },
+      });
+      console.log("Response from server:", responseFirst.data);
+      currentGroup.value = group;
+      await loadGroupMessages(group);
+      if (!availableGroups.value.includes(group)) {
+        availableGroups.value.push(group);
+      }
+      const responseSecond = await axios.get("/api/Chat/GetUsersRole", {
+        params: { 
+          groupName: group, 
+          userName: userName.value },
+      });
+      console.log("Response from server:", responseSecond.data);
+      isGroupRole.value = responseSecond.data;
+      newGroupName.value = "";
+      nextTick(() => {
+        const inputElement = document.getElementById("eli-message");
+        if (inputElement) {
+          inputElement.focus();
+        }
+      });
+    } catch (error) {
+      console.error("Error joining group:", error);
+      ElMessage.error("Ошибка при вступлении в чат");
+      ElMessage({
+        message: "Возможно, группа с таким названием не существует",
+        type: "warning",
+      });
+    }
+  }
+};
+
+
+const leaveGroup = async () => {
+  searchQuery.value = "";
+  isSearching.value = false;
+  if (currentGroup.value && userName.value) {
+    try {
+      const response = await axios.post("/api/Chat/LeaveGroup", null, {
+        params: { 
+          leaveGroupName: currentGroup.value, 
+          leaveUserName: userName.value },
+      });
+      console.log("Response from server:", response.data);
+      availableGroups.value = availableGroups.value.filter(
+        (group) => group !== currentGroup.value
+      );
+      currentGroup.value = "";
+      groupMessages.value = [];
+      nextTick(() => {
+        const inputElement = document.getElementById("eli-create");
+        if (inputElement) {
+          inputElement.focus();
+        }
+      });
+      isGroupRole.value = "";
+    } catch (error) {
+      console.error("Error leaving group:", error);
+    }
+  }
+};
+
+
 const deleteGroup = async () => {
   searchQuery.value = "";
   isSearching.value = false;
   if (currentGroup.value && userName.value) {
     try {
       const response = await axios.post("/api/Chat/DeleteGroup", null, {
-        params: { groupName: currentGroup.value, userName: userName.value },
+        params: { 
+          deleteGroupName: currentGroup.value, 
+          executorUserName: userName.value },
       });
       console.log("Response from server:", response.data);
       currentGroup.value = "";
@@ -311,7 +338,29 @@ const deleteGroup = async () => {
   }
 };
 
-let repliedMessageId = ref(null);
+const sendMessage = async () => {
+  searchQuery.value = "";
+  isSearching.value = false;
+  if (currentGroup.value && userName.value) {
+    try {
+      const params = {
+        groupName: currentGroup.value,
+        message: newMessage.value,
+        userName: userName.value,
+      };
+      if (repliedMessageId.value) {
+        params["messageId"] = repliedMessageId.value;
+      }
+      const response = await axios.post("/api/Chat/SendMessage", null, { params });
+      console.log("Response from server:", response.data);
+      newMessage.value = "";
+      repliedMessageId.value = null;
+      scrollToEnd();
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  }
+};
 
 const replyMessage = async (message) => {
   if (repliedMessageId.value === message.id) {
@@ -327,116 +376,6 @@ const replyMessage = async (message) => {
   });
 };
 
-const sendMessage = async () => {
-  searchQuery.value = "";
-  isSearching.value = false;
-  if (currentGroup.value && userName.value) {
-    try {
-      const params = {
-        groupName: currentGroup.value,
-        message: newMessage.value,
-        userName: userName.value,
-      };
-      if (repliedMessageId.value) {
-        params["messageId"] = repliedMessageId.value;
-      }
-      await axios.post("/api/Chat/SendMessage", null, { params });
-      newMessage.value = "";
-      repliedMessageId.value = null;
-      scrollToEnd();
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
-  }
-};
-
-const loadGroupMessages = async (group) => {
-  await nextTick();
-  const container_load = document.querySelector(".main_container");
-  const loading = ElLoading.service({
-    target: container_load,
-    lock: true,
-    text: "Loading",
-    background: "rgba(255, 255, 255, 0.8)",
-  });
-  try {
-    const response = await axios.get("/api/Chat/GetGroupMessages", {
-      params: { groupName: group },
-    });
-    groupMessages.value = response.data;
-    scrollToEnd();
-  } catch (error) {
-    console.error("Error loading group messages:", error);
-  } finally {
-    setTimeout(() => {
-      loading.close();
-    }, 1000);
-  }
-};
-
-const closeGroup = async () => {
-  currentGroup.value = "";
-  groupMessages.value = [];
-  isGroupRole.value = "";
-  nextTick(() => {
-    const inputElement = document.getElementById("eli-create");
-    if (inputElement) {
-      inputElement.focus();
-    }
-  });
-};
-
-const loadAvailableGroups = async () => {
-  currentGroup.value = "";
-  if (userName.value) {
-    try {
-      const response = await axios.get("/api/Chat/GetUserGroups", {
-        params: { userName: userName.value },
-      });
-      availableGroups.value = response.data;
-      nextTick(() => {
-        const inputElement = document.getElementById("eli-create");
-        if (inputElement) {
-          inputElement.focus();
-        }
-      });
-      console.log("Available groups loaded:", availableGroups.value);
-    } catch (error) {
-      console.error("Error loading user groups:", error);
-    }
-  }
-};
-
-const removeMessageForAll = async (messageId) => {
-  try {
-    const response = await axios.post("/api/Chat/RemoveMessageForAll", null, {
-      params: {
-        groupName: currentGroup.value,
-        messageId: messageId,
-      },
-    });
-    console.log("Response from server:", response.data);
-    //await loadGroupMessages(currentGroup.value);
-  } catch (error) {
-    console.error("Error :", error);
-  }
-};
-
-const editedMessage = ref("");
-const isEditing = ref(false);
-let editedMessageId = null;
-
-const showDropdownMenuForMessage = ref<number | null>(null);
-
-const showDropdownMenu = (message) => {
-  if (message.sender == "System") {
-    showDropdownMenuForMessage.value = null;
-  } else if (showDropdownMenuForMessage.value === message.id) {
-    showDropdownMenuForMessage.value = null;
-  } else {
-    showDropdownMenuForMessage.value = message.id;
-  }
-};
 
 const editMessage = async (message) => {
   isEditing.value = true;
@@ -453,22 +392,21 @@ const editMessage = async (message) => {
 const cancelEdit = () => {
   editedMessage.value = "";
   isEditing.value = false;
-  showDropdownMenuForMessage.value = null;
 };
 
 const saveEdit = async () => {
   if (editedMessageId !== null) {
     try {
-      await axios.post("/api/Chat/EditMessage", null, {
+      const response = await axios.post("/api/Chat/EditMessage", null, {
         params: {
           groupName: currentGroup.value,
-          messageId: editedMessageId,
+          editMessageId: editedMessageId,
           newText: editedMessage.value,
         },
       });
+      console.log("Response from server:", response.data);
       editedMessage.value = "";
       isEditing.value = false;
-      showDropdownMenuForMessage.value = null;
       nextTick(() => {
         const inputElement = document.getElementById("eli-message");
         if (inputElement) {
@@ -481,6 +419,169 @@ const saveEdit = async () => {
   }
 };
 
+const removeMessageForAll = async (messageId) => {
+  try {
+    const response = await axios.post("/api/Chat/RemoveMessageForAll", null, {
+      params: {
+        groupName: currentGroup.value,
+        removeMessageId: messageId,
+      },
+    });
+    console.log("Response from server:", response.data);
+  } catch (error) {
+    console.error("Error remove message:", error);
+  }
+};
+
+
+const removeUserFromGroup = async (memberName: string) => {
+  try {
+    const response = await axios.post("/api/Chat/DeleteUser", null, {
+      params: { 
+        groupName: currentGroup.value, 
+        deleteUserName: memberName },
+    });
+    console.log("Response from server:", response.data);
+    groupMembers.value = groupMembers.value.filter(
+      (member) => member.name !== memberName
+    );
+    ElMessage.success(`Пользователь ${memberName} успешно удален`);
+  } catch (error) {
+    console.error("Error deleting user from group:", error);
+    ElMessage.error(`Ошибка при удалении пользователя ${memberName}`);
+  }
+};
+
+
+const changeUserRole = async () => {
+  try {
+    const response = await axios.post("/api/Chat/ChangeUserRole", null, {
+      params: {
+        groupName: currentGroup.value,
+        changeRoleUserName: selectedMembertoChangeRole.value,
+        newRole: selectedRole.value,
+      },
+    });
+    console.log("Response from server:", response.data);
+    dialogRoleVisible.value = false;
+    ElMessage.success(`Роль пользователь ${selectedMembertoChangeRole.value} успешно изменена на ${selectedRole.value}`);
+    selectedRole.value = "";
+    selectedMembertoChangeRole.value = "";
+  } catch (error) {
+    console.error("Error change user role:", error);
+    ElMessage.error(`Ошибка при изменении роли`);
+  }
+};
+
+
+const loadAvailableGroups = async () => {
+  currentGroup.value = "";
+  if (userName.value) {
+    try {
+      const response = await axios.get("/api/Chat/GetUserGroups", {
+        params: { userName: userName.value },
+      });
+      console.log("Response from server:", response.data);
+      availableGroups.value = response.data;
+      nextTick(() => {
+        const inputElement = document.getElementById("eli-create");
+        if (inputElement) {
+          inputElement.focus();
+        }
+      });
+    } catch (error) {
+      console.error("Error loading user groups:", error);
+    }
+  }
+};
+
+
+const loadGroupMessages = async (group) => {
+  await nextTick();
+  const container_load = document.querySelector(".main_container");
+  const loading = ElLoading.service({
+    target: container_load,
+    lock: true,
+    text: "Loading",
+    background: "rgba(255, 255, 255, 0.8)",
+  });
+  try {
+    const response = await axios.get("/api/Chat/GetGroupMessages", {
+      params: { groupName: group },
+    });
+    console.log("Response from server:", response.data);
+    groupMessages.value = response.data;
+    scrollToEnd();
+  } catch (error) {
+    console.error("Error loading group messages:", error);
+  } finally {
+    setTimeout(() => {
+      loading.close();
+    }, 1000);
+  }
+};
+
+
+const loadGroupMembers = async (group) => {
+  try {
+    const response = await axios.get("/api/Chat/GetUsersInGroup", {
+      params: { groupName: group },
+    });
+    console.log("Response from server:", response.data);
+    groupMembers.value = response.data;
+    dialogUserVisible.value = true;
+  } catch (error) {
+    console.error("Error loading group members:", error);
+  }
+};
+
+
+const openDialogRole = async (memberName: string) => {
+  try {
+    const response = await axios.get("/api/Chat/GetUsersRole", {
+      params: { groupName: currentGroup.value, userName: memberName },
+    });
+    console.log("Response from server:", response.data);
+    selectedRole.value = response.data;
+    dialogRoleVisible.value = true;
+    selectedMembertoChangeRole.value = memberName;
+  } catch (error) {
+    console.error("Error get user role", error);
+  }
+};
+
+const closeDialogRole = async () => {
+  dialogRoleVisible.value = false;
+  selectedRole.value = "";
+  selectedMembertoChangeRole.value = "";
+};
+
+
+const closeGroup = async () => {
+  currentGroup.value = "";
+  groupMessages.value = [];
+  isGroupRole.value = "";
+  nextTick(() => {
+    const inputElement = document.getElementById("eli-create");
+    if (inputElement) {
+      inputElement.focus();
+    }
+  });
+};
+
+const scrollToEnd = () => {
+  setTimeout(() => {
+    var container = document.querySelector(".chat_container");
+    if (container !== null) {
+      container.scrollTop = container.scrollHeight;
+    } else {
+      console.error("Element with class .chat_container not found");
+    }
+  }, 0);
+};
+
+
+
 const scrollToOriginalMessage = (message) => {
   console.log("scrollToOriginalMessage:");
   if (message.replyTo !== null) {
@@ -489,7 +590,7 @@ const scrollToOriginalMessage = (message) => {
       `message-${message.replyTo.messageReplyId}`
     );
     const originalMessage = groupMessages.value.find(
-      (msg) => msg.id === message.replyTo.messageReplyId
+      (msg) => msg.id === message.replyTo.messageReplyId && message.replyTo.replyState !== null
     );
     console.log("Original message:", originalMessage);
     if (originalMessage) {
@@ -551,74 +652,7 @@ const filteredMessages = computed(() => {
   }
 });
 
-const loadGroupMembers = async (group) => {
-  try {
-    const response = await axios.get("/api/Chat/GetUsersInGroup", {
-      params: { groupName: group },
-    });
-    groupMembers.value = response.data;
-    dialogUserVisible.value = true;
-  } catch (error) {
-    console.error("Error loading group members:", error);
-  }
-};
 
-const isCurrentUserAdminOrCreator = computed(() => {
-  const currentUser = groupMembers.value.find(
-    (member) => member.name === userName.value
-  );
-  return (
-    currentUser &&
-    (currentUser.role == "Admin" || currentUser.role == "Creator")
-  );
-});
-
-const leaveGroup = async () => {
-  searchQuery.value = "";
-  isSearching.value = false;
-  if (currentGroup.value && userName.value) {
-    try {
-      const response = await axios.post("/api/Chat/LeaveGroup", null, {
-        params: { groupName: currentGroup.value, userName: userName.value },
-      });
-      console.log("Response from server:", response.data);
-      availableGroups.value = availableGroups.value.filter(
-        (group) => group !== currentGroup.value
-      );
-      currentGroup.value = "";
-      groupMessages.value = [];
-      nextTick(() => {
-        const inputElement = document.getElementById("eli-create");
-        if (inputElement) {
-          inputElement.focus();
-        }
-      });
-      isGroupRole.value = "";
-      //await loadAvailableGroups();
-    } catch (error) {
-      console.error(
-        "Error leaving group:",
-        error.response ? error.response.data : error.message
-      );
-    }
-  }
-};
-
-const removeUserFromGroup = async (memberName: string) => {
-  try {
-    await axios.post("/api/Chat/DeleteUser", null, {
-      params: { groupName: currentGroup.value, userName: memberName },
-    });
-
-    groupMembers.value = groupMembers.value.filter(
-      (member) => member.name !== memberName
-    );
-    ElMessage.success(`Пользователь ${memberName} успешно удален`);
-  } catch (error) {
-    console.error("Error removing user from group:", error);
-    ElMessage.error(`Ошибка при удалении пользователя ${memberName}`);
-  }
-};
 
 const formatRole = (role) => {
   if (role === "Common") {
@@ -633,51 +667,10 @@ const formatRole = (role) => {
   return role;
 };
 
-onMounted(async () => {
-  if (userName.value) {
-    await initializeSignalRConnection();
-    await setUserConnection();
-    await loadAvailableGroups();
-  }
-});
 
-const closeDialogRole = async () => {
-  dialogRoleVisible.value = false;
-  selectedRole.value = "";
-  selectedMembertoChangeRole.value = "";
-};
 
-const openDialogRole = async (memberName: string) => {
-  try {
-    const response = await axios.get("/api/Chat/GetUsersRole", {
-      params: { groupName: currentGroup.value, userName: memberName },
-    });
-    selectedRole.value = response.data;
-    dialogRoleVisible.value = true;
-    selectedMembertoChangeRole.value = memberName;
-  } catch (error) {
-    console.error("Error", error);
-    ElMessage.error(`Ошибка кто`);
-  }
-};
 
-const changeUserRole = async () => {
-  try {
-    const response = await axios.post("/api/Chat/ChangeUserRole", null, {
-      params: {
-        groupName: currentGroup.value,
-        userName: selectedMembertoChangeRole.value,
-        newRole: selectedRole.value,
-      },
-    });
-    dialogRoleVisible.value = false;
-    selectedRole.value = "";
-    selectedMembertoChangeRole.value = "";
-  } catch (error) {
-    console.error("Error", error);
-    ElMessage.error(`Ошибка что`);
-  }
-};
+
 </script>
 
 <template>
@@ -702,14 +695,14 @@ const changeUserRole = async () => {
         <el-radio-group v-model="selectedRole">
           <el-radio-button label="Участник" value="Common" />
           <el-tooltip
-            content="Может удалять людей и сообщения"
+            content="Может удалять сообщения"
             placement="top"
             effect="customized"
           >
             <el-radio-button label="Модер" value="Moderator" />
           </el-tooltip>
           <el-tooltip
-            content="Может удалять сообщения"
+            content="Может удалять людей и сообщения"
             placement="top"
             effect="customized"
           >
@@ -825,7 +818,18 @@ const changeUserRole = async () => {
       />
       <el-container class="main_container">
         <el-header v-if="currentGroup" class="chat_header">
-          <h2 class="chat-title">{{ currentGroup }}</h2>
+          <div class="chat-title-container">
+            <el-tooltip
+              content="Закрыть группу"
+              effect="customized"
+              placement="top"
+            >
+              <el-icon class="icon-spacing" @click="closeGroup" :size="30">
+                <Back />
+              </el-icon>
+            </el-tooltip>
+            <h2 class="chat-title">{{ currentGroup }}</h2>
+          </div>
           <el-input
             id="eli-search"
             v-if="isSearching"
@@ -864,16 +868,7 @@ const changeUserRole = async () => {
             </el-tooltip>
 
             <el-tooltip
-              content="Закрыть группу"
-              effect="customized"
-              placement="top"
-            >
-              <el-icon class="icon-spacing" @click="closeGroup" :size="30">
-                <Close />
-              </el-icon>
-            </el-tooltip>
-
-            <el-tooltip
+              v-if="isGroupRole !== 'Creator'"
               content="Покинуть группу"
               effect="customized"
               placement="top"
@@ -930,10 +925,14 @@ const changeUserRole = async () => {
                       message.sender == userName),
                 },
               ]"
-              @contextmenu.prevent.right="showDropdownMenu(message)"
               @dblclick="scrollToOriginalMessage(message)"
             >
-              <span v-if="message.sender !== userName && message.sender !== 'System'" class="sender-name">
+              <span
+                v-if="
+                  message.sender !== userName && message.sender !== 'System'
+                "
+                class="sender-name"
+              >
                 {{ message.sender }}:
               </span>
               {{ message.text }}
@@ -986,6 +985,7 @@ const changeUserRole = async () => {
             <el-button
               class="message-buttons"
               type="submit"
+              color="41B3A3"
               size="large"
               @click="sendMessage"
               >Отправить</el-button
@@ -1051,14 +1051,13 @@ const changeUserRole = async () => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  /* align-items: center; */
   padding: 10px;
   margin-bottom: 15px;
 }
 
 .create_input {
-  width: 100%; /* Ширина на всю доступную область */
-  margin-bottom: 10px; /* Отступ снизу для разделения с кнопками */
+  width: 100%; 
+  margin-bottom: 10px; 
 }
 
 .button_container {
@@ -1067,16 +1066,16 @@ const changeUserRole = async () => {
 }
 
 .create_buttons {
-  flex: 1; /* Равное распределение места */
-  margin: 0 5px; /* Отступы между кнопками */
+  flex: 1; 
+  margin: 0 5px; 
 }
 
 .create_buttons:first-child {
-  margin-left: 0; /* Убираем отступ слева у первой кнопки */
+  margin-left: 0; 
 }
 
 .create_buttons:last-child {
-  margin-right: 0; /* Убираем отступ справа у последней кнопки */
+  margin-right: 0; 
 }
 
 .list_of_group {
@@ -1103,6 +1102,7 @@ const changeUserRole = async () => {
 .group-list button:hover {
   background-color: #7acabf;
   text-decoration: none;
+  color:#000
 }
 
 .main_container {
@@ -1117,12 +1117,22 @@ const changeUserRole = async () => {
 .chat_header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 10px;
 }
 
 .chat-title {
-  flex: 1;
-  margin-right: 5px;
+  margin-left: 5px;
+}
+
+.chat-title-container {
+  display: flex;
+  align-items: center;
+}
+
+.buttons-container {
+  display: flex;
+  align-items: center;
 }
 
 .input-container {
@@ -1140,8 +1150,16 @@ const changeUserRole = async () => {
   margin-right: 5px;
 }
 
+.search-input {
+  flex: 0.7;
+  margin-right: 5px;
+  margin-left: auto;
+}
+
 .message-buttons {
   margin-left: 5px;
+  background-color: #41B3A3;
+  border: 0;
 }
 
 .icon-spacing {
@@ -1171,14 +1189,14 @@ const changeUserRole = async () => {
 }
 
 .user-message {
-  background-color: #f0f0f0;
-  color: #007bff;
+  background-color: #E39078;
+  color: #000;
   text-align: right;
   margin-left: auto;
 }
 
 .other-message {
-  background-color: #57dc81;
+  background-color: #D09FAF;
   color: #000000;
   text-align: left;
   margin-right: auto;
@@ -1186,14 +1204,16 @@ const changeUserRole = async () => {
 
 .user-reply-to-message {
   text-align: right;
-  background-color: #b8cdcdcc;
+  color: #000000;
+  background-color: #DD6846;
   margin-right: 20px;
   margin-left: auto;
 }
 
 .other-reply-to-message {
   text-align: left;
-  background-color: #b8cdcdcc;
+  color: #000000;
+  background-color: #B06980;
   margin-left: 20px;
   margin-right: auto;
 }
@@ -1228,23 +1248,23 @@ const changeUserRole = async () => {
 }
 
 .member-details {
-  margin-bottom: 20px; /* Добавим отступ между элементами списка */
+  margin-bottom: 20px; 
 }
 
 .member-content {
   display: flex;
-  justify-content: space-between; /* Распределяем left-section и right-section по краям */
-  align-items: center; /* Выравниваем по вертикали */
+  justify-content: space-between; 
+  align-items: center; 
 }
 
 .member-name {
   display: flex;
-  align-items: center; /* Выравниваем элементы внутри member-name по вертикали */
+  align-items: center; 
 }
 
 .member-actions {
   display: flex;
-  align-items: center; /* Выравниваем элементы внутри member-actions по вертикали */
+  align-items: center; 
 }
 
 .right-section {
